@@ -1,0 +1,48 @@
+services:
+  app:
+    image: hello-front
+    build:
+      args:
+       - REACT_APP_BACKEND_URL=api/
+      context: ./todo-frontend # The context will pick this directory as the "build context"
+      dockerfile: Dockerfile # This will simply tell which dockerfile to read
+    container_name: hello-front # This will name the container hello-front
+  mongo:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: the_database
+    volumes:
+      - ./todo-backend/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+      - ./todo-backend/mongo_data:/data/db
+  redis:
+    image: redis
+    command: ['redis-server', '--appendonly', 'yes'] # Overwrite the CMD
+    volumes:
+      - ./todo-backend/redis_data:/data
+  server:
+    image: todo-backend
+    build:
+      context: ./todo-backend
+      dockerfile: Dockerfile
+    volumes:
+     - ./todo-backend/:/usr/src/app
+    container_name: todo-backend
+    environment:
+     - REDIS_URL=redis://redis:6379
+     - MONGO_URL=mongodb://the_username:the_password@mongo:27017/the_database
+    depends_on:
+     - mongo
+     - redis
+  nginx:
+    image: nginx:1.20.1
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - 8080:80
+    container_name: reverse-proxy
+    depends_on:
+      - app
+      - server
+
