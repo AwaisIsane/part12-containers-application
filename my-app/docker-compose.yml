@@ -1,0 +1,30 @@
+services:
+  app:
+    image: my-app
+    build:
+      context: ./frontend # The context will pick this directory as the "build context"
+      dockerfile: Dockerfile # This will simply tell which dockerfile to read
+    container_name: my-app # This will name the container my-app-dev
+  server:
+    image: my-app-backend
+    build:
+      context: ./backend
+      dockerfile: dev.Dockerfile
+    volumes:
+     - ./backend/:/usr/src/app
+    container_name: my-app-backend
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
+      TEST_MONGODB_URI: ${TEST_MONGODB_URI}
+      SECRET: ${SECRET}
+      PORT: ${PORT}
+  nginx:
+    image: nginx:1.20.1
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - 8080:80
+    container_name: reverse-proxy
+    depends_on:
+      - app
+      - server
